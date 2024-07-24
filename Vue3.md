@@ -406,4 +406,139 @@ function warn(message, event) {
 
 **********
 
+## 表单输入绑定
+* ```v-model``` 指令绑定```value```(或```checked```)proprety
+* ```v-model``` 指令监听```input```(或```change```)事件
+### 基本用法
+#### 文本
+```html
+<p>Message is: {{ message }}</p>
+<input v-model="message" placeholder="edit me" />
+```
+#### 多行文本
+```html
+<span>Multiline message is:</span>
+<p style="white-space: pre-line;">{{ message }}</p>
+<textarea v-model="message" placeholder="add multiple lines"></textarea>
+```
+#### 复选框
+* 单一复选框，绑定布尔类型
+```html
+<input type="checkbox" id="checkbox" v-model="checked" />
+<label for="checkbox">{{ checked }}</label>
+```
+* 多个复选框绑定到同一个数组
+```js
+const checkedNames = ref([])
+```
+```html
+<div>Checked names: {{ checkedNames }}</div>
+
+<input type="checkbox" id="jack" value="Jack" v-model="checkedNames" />
+<label for="jack">Jack</label>
+
+<input type="checkbox" id="john" value="John" v-model="checkedNames" />
+<label for="john">John</label>
+
+<input type="checkbox" id="mike" value="Mike" v-model="checkedNames" />
+<label for="mike">Mike</label>
+```
+#### 单选
+```html
+<div>Picked: {{ picked }}</div>
+
+<input type="radio" id="one" value="One" v-model="picked" />
+<label for="one">One</label>
+
+<input type="radio" id="two" value="Two" v-model="picked" />
+<label for="two">Two</label>
+```
+#### 选择器
+* 单选
+```html
+<div>Selected: {{ selected }}</div>
+
+<select v-model="selected">
+  <option disabled value="">Please select one</option>
+  <option>A</option>
+  <option>B</option>
+  <option>C</option>
+</select>
+```
+* 多选(值绑定到一个数组)
+```html
+<div>Selected: {{ selected }}</div>
+
+<select v-model="selected" multiple>
+  <option>A</option>
+  <option>B</option>
+  <option>C</option>
+</select>
+```
+* ```v-for```动态渲染
+```js
+const selected = ref('A')
+
+const options = ref([
+  { text: 'One', value: 'A' },
+  { text: 'Two', value: 'B' },
+  { text: 'Three', value: 'C' }
+])
+```
+```html
+<select v-model="selected">
+  <option v-for="option in options" :value="option.value">
+    {{ option.text }}
+  </option>
+</select>
+
+<div>Selected: {{ selected }}</div>
+```
+
+### 修饰符
+* ```.lazy```： 每次 change 事件后才更新数据
+* ```.number```： 输入自动转化为数字
+  ```html
+  <input v-model.number="age" />
+  ```
+* ```.trim```： 去除输入的两端空格
+
+*********************
+
+## 生命周期
+### 生命周期
+  * 主要包含创建、挂载、更新和销毁组件阶段
+  * 生命周期钩子：在生命周期不同阶段执行特定代码
+### 生命周期钩子
+* 注册生命周期钩子：
+```html
+<script setup>
+import { onMounted } from 'vue'
+/* 组件完成初始渲染并创建 DOM 节点后运行代码 */
+onMounted(() => {
+  console.log(`the component is now mounted.`)
+})
+</script>
+```
+* [生命周期钩子的API索引](https://cn.vuejs.org/api/composition-api-lifecycle.html)
+
+******************************
+
+## 侦听器
+
+### ```watch```函数
+*  watch 函数在每次响应式状态发生变化时触发回调函数
+```js
+// 可以直接侦听一个 ref
+const question = ref('')
+watch(question,  (newQuestion, oldQuestion) => {
+  // 具体实现
+})
+```
+* ```watch```的第一个参数可以是：
+  * 一个ref
+  * 一个响应式对象
+  * 一个getter函数
+  * 多个数据源组成的数组
+
 
