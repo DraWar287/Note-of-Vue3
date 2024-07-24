@@ -99,7 +99,7 @@ const count = ref(0)
 function increment() {
   count.value++
 }
-</>
+</script>
 
 <template>
   <button @click="increment">
@@ -210,3 +210,200 @@ const styleObject = reactive({
 ******************
 
 ## 条件渲染
+### v-if, v-else-if, v-else
+```html
+<div v-if="type === 'A'">
+  A
+</div>
+<div v-else-if="type === 'B'">
+  B
+</div>
+<div v-else-if="type === 'C'">
+  C
+</div>
+<div v-else>
+  Not A/B/C
+</div>
+```
+* ```v-show```也能有类似效果，若需要频繁切换的话选择v-show较好
+* 注意：```v-if``` 和```v-for```不推荐同时使用
+
+******************
+
+## 列表渲染
+### v-for
+
+```js
+const items = ref([{ message: 'Foo' }, { message: 'Bar' }])
+```
+```html
+<li v-for="item in items">
+  {{ item.message }}
+</li>
+```
+* ```v-for``` 也支持使用可选的第二个参数表示当前项的位置索引。
+
+### ```v-for```与对象
+* 可以使用 v-for 来遍历一个对象的所有属性
+```js
+const myObject = reactive({
+  title: 'How to do lists in Vue',
+  author: 'Jane Doe',
+  publishedAt: '2016-04-10'
+})
+```
+```html
+<ul>
+  <li v-for="value in myObject">
+    {{ value }}
+  </li>
+</ul>
+```
+* 第二个可选参数为 key, 第三个可选参数为位置索引
+```html
+<li v-for="(value, key, index) in myObject">
+  {{ index }}. {{ key }}: {{ value }}
+</li>
+```
+### ```v-for```里使用范围值
+```html
+<span v-for="n in 10">{{ n }}</span>
+```
+### 条件循环
+* 避免在同一个标签内同时使用```v-if```和```v-for```
+* 应当嵌套:
+```html
+<template v-for="todo in todos">
+  <li v-if="!todo.isComplete">
+    {{ todo.name }}
+  </li>
+</template>
+```
+### 通过```key```管理状态
+* ```v-for```渲染的元素列表的默认更新是就地更新，即DOM元素的顺序不会再被移动
+* 重用和重新排序现有的元素，要为每个元素对应的块提供一个唯一的```key```attribute
+```html
+<div v-for="item in items" :key="item.id">
+  <!-- 内容 -->
+</div>
+```
+### 组件上使用```v-for```
+**[ Waiting for additional details ]**
+
+***********************
+
+
+## 事件处理
+### 监听事件
+* ```v-on:```或其简写```@```
+* 事件处理器：
+  * [内联事件处理器](#内联事件处理器)
+  * [方法事件处理器](#方法事件处理器)
+### 内联事件处理器
+* 事件被触发时执行的内联 JavaScript 语句
+```js
+const count = ref(0)
+```
+```html
+<button @click="count++">Add 1</button>
+<p>Count is: {{ count }}</p>
+```
+
+### 方法事件处理器
+* 一个指向组件上定义的方法的属性名或是路径
+```html
+<!-- `greet` 是上面定义过的方法名 -->
+<button @click="greet">Greet</button>
+```
+### 内联事件处理器中访问事件参数
+* 传入特殊参数 ```$event```
+* 使用内联箭头函数
+```html
+<!-- 使用特殊的 $event 变量 -->
+<button @click="warn('Form cannot be submitted yet.', $event)">
+  Submit
+</button>
+
+<!-- 使用内联箭头函数 -->
+<button @click="(event) => warn('Form cannot be submitted yet.', event)">
+  Submit
+</button>
+```
+```js
+function warn(message, event) {
+  // 这里可以访问原生事件
+  if (event) {
+    event.preventDefault()
+  }
+  alert(message)
+}
+```
+
+### 事件修饰符
+```html
+<!-- 单击事件将停止传递 -->
+<a @click.stop="doThis"></a>
+
+<!-- 提交事件将不再重新加载页面 -->
+<form @submit.prevent="onSubmit"></form>
+
+<!-- 修饰语可以使用链式书写 -->
+<a @click.stop.prevent="doThat"></a>
+
+<!-- 也可以只有修饰符 -->
+<form @submit.prevent></form>
+
+<!-- 仅当 event.target 是元素本身时才会触发事件处理器 -->
+<!-- 例如：事件处理器不来自子元素 -->
+<div @click.self="doThat">...</div>
+
+<!-- 添加事件监听器时，使用 `capture` 捕获模式 -->
+<!-- 例如：指向内部元素的事件，在被内部元素处理前，先被外部处理 -->
+<div @click.capture="doThis">...</div>
+
+<!-- 点击事件最多被触发一次 -->
+<a @click.once="doThis"></a>
+
+<!-- 滚动事件的默认行为 (scrolling) 将立即发生而非等待 `onScroll` 完成 -->
+<!-- 以防其中包含 `event.preventDefault()` -->
+<div @scroll.passive="onScroll">...</div>
+```
+
+### 按键修饰符
+```html
+<!-- 仅在 `key` 为 `Enter` 时调用 `submit` -->
+<input @keyup.enter="submit" />
+```
+* 按键别名：
+  * ```.enter```
+  * ```.tab```
+  * ```.delete``` (捕获“Delete”和“Backspace”两个按键)
+  * ```.esc```
+  * ```.space```
+  * ```.up```
+  * ```.down```
+  * ```.left```
+  * ```.right```
+* 系统按键别名：
+  * ```.ctrl```
+  * ```.alt```
+  * ```.shift```
+  * ```.meta``` (win键, cmd键)
+* ```.exact```修饰符
+  精确控制触发事件所需的系统修饰符的组合
+  ```html
+  <!-- 当按下 Ctrl 时，即使同时按下 Alt 或 Shift 也会触发 -->
+  <button @click.ctrl="onClick">A</button>
+  <!-- 仅当按下 Ctrl 且未按任何其他键时才会触发 -->
+  <button @click.ctrl.exact="onCtrlClick">A</button>
+  <!-- 仅当没有按下任何系统按键时触发 -->
+  <button @click.exact="onClick">A</button>
+  ```
+### 鼠标按键修饰符
+* ```.left```
+* ```.right```
+* ```.middle```
+
+**********
+
+
