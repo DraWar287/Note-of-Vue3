@@ -541,4 +541,164 @@ watch(question,  (newQuestion, oldQuestion) => {
   * 一个getter函数
   * 多个数据源组成的数组
 
+### 深层监听器
+* 直接给 watch() 传入一个响应式对象，会隐式地创建一个深层侦听器——该回调函数在所有嵌套的变更时都会被触发
+* 一个返回响应式对象的 getter 函数，只有在返回不同的对象时，才会触发回调
+* watch的第三个参数加上```{deep: true}```, 强制转为深层监听器
+### 即时回调的监听器
+* 创建侦听器时，立即执行一遍回调
+* watch的第三个参数加上```{immediate: true}```
+### 一次性侦听器
+* watch的第三个参数加上```{once: true}```
+### ```watchEffect```
+  ```JavaScript
+  watchEffect(async () => {
+    const response = await fetch(
+      `https://jsonplaceholder.typicode.com/todos/${todoId.value}`
+    )
+    data.value = await response.json()
+  })
+  ```
+* 以上代码自动追踪 todoId.value 作为依赖（和计算属性类似）。每当 todoId.value 变化时，回调会再次执行。
+* 回调会立即执行，不需要指定 immediate: true
+### 回调触发时机
+* 默认情况下，侦听器回调会在父组件更新 (如有) 之后、所属组件的 DOM 更新之前被调用
+* 侦听器回调中能访问被 Vue 更新之后的所属组件的 DOM：指明```{flush: 'post'}```
+*  ```watchEffect()``` 有个更方便的别名 ```watchPostEffect()```
+* 同步监听器：```{flush: 'sync'}```, ```watchSyncEffect()```
+### 停止侦听器
+* 在 setup() 或 ```<script setup>``` 中用同步语句创建的侦听器，会自动绑定到宿主组件实例上，并且会在宿主组件卸载时自动停止。
+* 手动停止：(异步回调创建的需要手动停止)
+```JavaScript
+const unwatch = watchEffect(() => {})
+// ...当该侦听器不再需要时
+unwatch()
+```
+**********
+## 模板引用
+* 在一个特定的 DOM 元素或子组件实例被挂载后，获得对它的直接引用
+```html
+<input ref="input">
+```
+### 访问模板引用
+* 声明一个与模板的```ref```同名的```ref```
+* 只可以在组件挂载后才能访问模板引用
+* 当在```v-for```中使用模板引用时，对应的```ref```中包含的值是一个数组
+```html
+<script setup>
+import { ref, onMounted } from 'vue'
+
+// 声明一个 ref 来存放该元素的引用
+// 必须和模板里的 ref 同名
+const input = ref(null)
+
+onMounted(() => {
+  input.value.focus()
+})
+</script>
+
+<template>
+  <input ref="input" />
+</template>
+```  
+### 函数模板引用
+* 使用动态的```:ref```绑定才能够传入一个函数
+* 每次组件更新时都被调用
+* 元素引用作为函数第一个参数
+* 当绑定的元素被卸载时，函数也会被调用一次，此时的```el```参数会是```null```
+  ```html
+  <input :ref="(el) => { /* 将 el 赋值给一个数据属性或 ref 变量 */ }">
+  ```
+
+### 组件上的ref
+**[ Waiting for additional details ]**
+
+
+************************
+
+## 组件基础
+### 定义一个组件
+* 单文件组件： 定义在一个单独的```.vue```文件中
+* 一个js对象: 模板是一个内联的字符串，或用id选择器选择一个元素
+
+### 传递props
+* ```props```：子组件接收父组件传递的一些参数
+* 声明```props```:
+```js
+<!-- BlogPost.vue -->
+<script setup>
+defineProps(['title'])
+</script>
+
+<template>
+  <h4>{{ title }}</h4>
+</template>
+```
+* defineProps 会返回一个对象，其中包含了可以传递给组件的所有```props```
+
+* 配合```v-for```使用：
+  * 父组件导入了组件```BlogPost```  
+  * 父组件有一个对象数组储存要用的props
+  ```js
+  const posts = ref([
+    { id: 1, title: 'My journey with Vue' },
+    { id: 2, title: 'Blogging with Vue' },
+    { id: 3, title: 'Why Vue is so fun' }
+  ])
+  ```
+  ```html
+  <BlogPost
+    v-for="post in posts"
+    :key="post.id"
+    :title="post.title"
+   />
+   ```
+### 监听事件
+* ```$emit```: 子组件上抛一个事件
+```html
+<!-- BlogPost.vue -->
+<script setup>
+defineEmits(['enlarge-text'])
+</script>
+```
+```html
+<!-- 向父组件抛出一个enlarge-text事件 -->
+<button @click="$emit('enlarge-text')">Enlarge text</button>
+```
+* 父组件可对该事件做处理
+```html
+    <BlogPost
+      @enlarge-text="postFontSize += 0.1"
+    ></BlogPost>
+```
+* ```defineEmits```返回一个等同于```$emit```方法的 emit 函数
+
+### 插槽
+* 父组件向子组件中传递内容
+* 通过占位符```</slot>```, 父组件传递进来的内容就会渲染在这里
+  * 父组件中：
+  ```html
+  <AlertBox>
+    Something bad happened.
+  </AlertBox>
+  ```
+  * 子组件中
+  ```html
+  <!-- AlertBox.vue -->
+  <template>
+    <div class="alert-box">
+      <strong>This is an Error for Demo Purposes</strong>
+      <slot />
+    </div>
+  </template>
+  ```
+### 动态组件
+* 通过```:is```属性来切换不同的组件
+* 传递给```:is```的值：
+  * 被注册的组件名
+  * 导入的组件对象
+```html
+<!-- currentTab 改变时组件也改变 -->
+<component :is="tabs[currentTab]"></component>
+```
 
