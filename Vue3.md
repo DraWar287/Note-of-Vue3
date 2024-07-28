@@ -1,6 +1,6 @@
-# Vue3
-
+<h1>Vue3</h1>
 [toc]
+# Vue3基础
 ## 创建一个应用实例：
 ### 基本结构
 ```javascript
@@ -700,5 +700,304 @@ defineEmits(['enlarge-text'])
 ```html
 <!-- currentTab 改变时组件也改变 -->
 <component :is="tabs[currentTab]"></component>
+```
+
+# 深入组件
+
+## 组件注册
+* 一个Vue组件在被使用前首先要被注册
+### 全局注册
+* 使用app的```component```方法
+* 参数
+  1. 组件名称
+  2. 组件实现的对象(可以从.vue文件导入)
+* component方法可以被链式使用
+```js
+app
+  .component('ComponentA', ComponentA)
+  .component('ComponentB', ComponentB)
+  .component('ComponentC', ComponentC)
+```
+
+### 局部注册
+* 在```<script setup>```导入的组件无需注册
+* 否则需要在组件对象的components属性中显示注册
+* 局部注册的组件在后代组件中不可用
+
+## props
+
+### props声明
+* 字符串数组形式
+```js
+const props = defineProps(['foo'])
+```
+* 对象形式：key 是 prop 的名称，而值则是该 prop 预期类型的构造函数
+```js
+defineProps({
+  title: String,
+  likes: Number
+})
+```
+* 使用一个对象绑定多个 prop
+```html
+<!-- post是一个对象 -->
+<BlogPost v-bind="post" />
+```
+
+### props校验
+```js
+defineProps({
+  // 基础类型检查
+  // （给出 `null` 和 `undefined` 值则会跳过任何类型检查）
+  propA: Number,
+  // 多种可能的类型
+  propB: [String, Number],
+  // 必传，且为 String 类型
+  propC: {
+    type: String,
+    required: true
+  },
+  // 必传但可为 null 的字符串
+  propD: {
+    type: [String, null],
+    required: true
+  },
+  // Number 类型的默认值
+  propE: {
+    type: Number,
+    default: 100
+  },
+  // 对象类型的默认值
+  propF: {
+    type: Object,
+    // 对象或数组的默认值
+    // 必须从一个工厂函数返回。
+    // 该函数接收组件所接收到的原始 prop 作为参数。
+    default(rawProps) {
+      return { message: 'hello' }
+    }
+  },
+  // 自定义类型校验函数
+  // 在 3.4+ 中完整的 props 作为第二个参数传入
+  propG: {
+    validator(value, props) {
+      // The value must match one of these strings
+      return ['success', 'warning', 'danger'].includes(value)
+    }
+  },
+  // 函数类型的默认值
+  propH: {
+    type: Function,
+    // 不像对象或数组的默认，这不是一个
+    // 工厂函数。这会是一个用来作为默认值的函数
+    default() {
+      return 'Default function'
+    }
+  }
+})
+```
+### Boolean类型转换
+```
+<!-- 等同于传入 :disabled="true" -->
+<MyComponent disabled />
+
+<!-- 等同于传入 :disabled="false" -->
+<MyComponent />
+```
+* 一个 prop 被声明为允许多种类型时，若Boolean为第一个选项， Boolean 的转换规则也将被应用
+
+## 事件
+### 事件参数
+* 给```$emit```提供额外的参数
+```html
+<button @click="$emit('increaseBy', 1)">
+  Increase by 1
+</button>
+```
+```html
+<MyButton @increase-by="(n) => count += n" />
+```
+
+### 事件校验
+* 使用对象形式来描述，事件为key, value为一个函数，接受的参数就是抛出事件时传入```emit```的内容，返回一个布尔值来表明事件是否合法。
+
+## 组件```v-model```
+
+### 基本用法
+* 使用```defineModel```
+```html
+<!-- Child.vue -->
+<script setup>
+const model = defineModel()
+
+function update() {
+  model.value++
+}
+</script>
+
+<template>
+  <div>Parent bound v-model is: {{ model }}</div>
+  <button @click="update">Increment</button>
+</template>
+```
+```html
+<!-- Parent.vue -->
+<Child v-model="countModel" />
+```
+父组件的```countModel```会与子组件的```input```元素绑定
+
+### ```v-model```的参数
+* 第一个参数为名称，第二个为额外的 prop 选项
+```js
+const title = defineModel('title', { required: true })
+```
+```html
+<MyComponent v-model:title="bookTitle" />
+```
+
+### 处理```v-model```修饰符
+
+#### 自定义修饰符
+* 给```defineModel()```传入```get```和```set```这两个选项。这两个选项在从模型引用中读取或设置值时会接收到当前的值
+```html
+<!-- Child.vue -->
+<script setup>
+const [model, modifiers] = defineModel({
+  set(value) {
+    if (modifiers.capitalize) {
+      return value.charAt(0).toUpperCase() + value.slice(1)
+    }
+    return value
+  }
+})
+</script>
+```
+```html
+<!-- Parent.vue -->
+<MyComponent v-model.capitalize="myText" />
+```
+
+## 插槽
+
+```html
+<FancyButton>
+  Click me! <!-- 插槽内容 -->
+</FancyButton>
+```
+```html
+<button class="fancy-btn">
+  <slot></slot> <!-- 插槽出口 -->
+</button>
+```
+
+### 默认内容
+* 为插槽指定默认内容
+* 显式提供的内容会取代默认内容
+```html
+<button type="submit">
+  <slot>
+    Submit <!-- 默认内容 -->
+  </slot>
+</button>
+```
+### 具名插槽
+* 一个组件中包含多个插槽出口
+* ```<slot>```元素可以有一个特殊的 attribute:```name```，用来给各个插槽分配唯一的 ID，以确定每一处要渲染的内容
+* 没有提供```name```的```<slot>```出口会隐式地命名为“default”。
+* ```v-slot```有对应的简写```#```: ```<template v-slot:header> 可以简写为 <template #header>```
+
+```html
+<div class="container">
+  <header>
+    <slot name="header"></slot>
+  </header>
+  <main>
+    <slot></slot>
+  </main>
+  <footer>
+    <slot name="footer"></slot>
+  </footer>
+</div>
+```
+```html
+<BaseLayout>
+  <template #header>
+    <h1>Here might be a page title</h1>
+  </template>
+
+  <template #default>
+    <p>A paragraph for the main content.</p>
+    <p>And another one.</p>
+  </template>
+
+  <template #footer>
+    <p>Here's some contact info</p>
+  </template>
+</BaseLayout>
+```
+
+### 条件插槽
+* 根据插槽是否存在来渲染某些内容
+```html
+  <div v-if="$slots.header" class="card-header">
+    <slot name="header" />
+  </div>
+```
+
+### 动态插槽名
+```html
+  <template v-slot:[dynamicSlotName]>
+    ...
+  </template>
+```
+### 作用域插槽
+* 向一个插槽的出口上传递 attributes：：
+```html
+<!-- <MyComponent> 的模板 -->
+<div>
+  <slot :text="greetingMessage" :count="1"></slot>
+</div>
+```
+* 接收到了一个插槽 props 对象：
+```html
+<MyComponent v-slot="slotProps">
+  {{ slotProps.text }} {{ slotProps.count }}
+</MyComponent>
+```
+
+### 依赖注入
+#### Provide:
+* 注入名可以是字符串或Symbol
+```html
+<script setup>
+import { provide } from 'vue'
+
+provide(/* 注入名 */ 'message', /* 值 */ 'hello!')
+</script>
+```
+
+* 应用层provide
+```js
+import { createApp } from 'vue'
+const app = createApp({})
+app.provide(/* 注入名 */ 'message', /* 值 */ 'hello!')
+```
+
+#### Inject
+```html
+<script setup>
+import { inject } from 'vue'
+
+const message = inject('message')
+</script>
+```
+* 可向```inject```提供第二个参数为默认值
+* 第三个参数表示默认值是否被当作一个工厂函数。
+```js
+const value = inject('key', () => new ExpensiveClass(), true)
+```
+* 使用```readonly()```包装，确保数据不能被注入方更改
+```js
+provide('read-only-count', readonly(count))
 ```
 
