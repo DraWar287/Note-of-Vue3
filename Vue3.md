@@ -1,9 +1,8 @@
-<h1>Vue3</h1>
 [toc]
 # Vue3基础
 ## 创建一个应用实例：
 ### 基本结构
-```javascript
+```js
 import { createApp } from 'vue'
 
 const app = createApp({ 
@@ -1001,3 +1000,184 @@ const value = inject('key', () => new ExpensiveClass(), true)
 provide('read-only-count', readonly(count))
 ```
 
+# 路由
+## 安装
+```shell
+npm install vue-router@4
+```
+## 基本使用
+* 创建路由实例：```createRouter()```
+```js
+/* 这段代码常放在 src/router/index.js 下
+   然后在main.js中导入
+*/
+
+import { createWebHistory, createRouter } from 'vue-router'
+
+import HomeView from './HomeView.vue'
+import AboutView from './AboutView.vue'
+
+/*  URL 路径映射到组件 */
+const routes = [
+  { path: '/', component: HomeView },
+  { path: '/about', component: AboutView },
+]
+
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+})
+
+export default rooter
+```
+* 注册路由插件
+```js
+/* ....... */
+/* router在 src/router/index.js 下才能这么导入 */
+import router from '@/router'
+
+const app = createApp(App)
+app.use(router)
+app.mount('#app')
+```
+* 该路由插件作用：
+  * 全局注册 ```RouterView``` 和 ```RouterLink``` 组件。
+  * 添加全局 ```$router``` 和 ```$route``` 属性。
+  * 启用 ```useRouter()``` 和 ```useRoute()``` 组合式函数。
+  * 触发路由器解析初始路由。
+
+* 使用路由进行跳转
+```js
+import {useRooter} from 'vue-router'
+const router = useRouter();
+router.push('/'); /* 跳转到主界面 */
+```
+
+## 配置子路由
+* 路由映射添加```children```属性
+```js
+const routes = [
+  { path: '/', component: HomeView },
+  { path: '/about', 
+    component: AboutView
+    children: [ /* children是一个route数组 */
+      {path: '/user/password', component: UserResetPassWordVue},
+      {path: '/user/avartar', component: UserAvartarVue},
+      {path: '/article/manage', component: UserArticleManageVue}
+    ]
+  },
+]
+```
+* 重定向
+  * 使一个页面默认使用一个字路由
+  * 设置一个属性```redirect```
+```js
+{ path: '/', 
+  redirect: '/article/manage',
+  component: HomeView },
+```
+# 网络
+
+## 跨域请求
+* 源策略要求网页只能与与其来源相同的资源进行交互，而不能与其他来源的资源进行交互。
+* 需要在```vite.config.js```中配置代理
+
+  * 前端调用的baseURL改成一个标识```'/api'```, 当前ajax请求的源会自动补齐到```'/api'```前面
+  * 修改```vite.config.js```
+  ```js
+    /* 添加 */
+    server: {
+      proxy: {
+        '/api': { /* 获取路径中包含 '/api' 的请求*/
+          target: 'http://hostName:8080', /* 后台服务所在的源 */
+          changeOrigin: true, /* 修改源 */
+          rewrite: (path) => path.replace(/^\/api/, '') /*   '/api'替换为 ''   */
+        }
+      }
+    }
+  ```
+
+# 状态管理```Pinia```
+* ```Store```承载着全局状态
+* 一个 Store 应该包含可以在整个应用中访问的数据
+## 基本使用
+### 安装
+```shell
+npm install pinia
+```
+### 使用```pinia```插件
+```js
+import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+import App from './App.vue'
+
+const pinia = createPinia()
+const app = createApp(App)
+
+app.use(pinia)
+app.mount('#app')
+```
+
+### 定义Store
+* 命名规范： 以 `use` 开头且以 `Store` 结尾。
+* 第一个参数是应用中```Store```的唯一 ID。
+* 利用Setup Store语法定义store:
+  * ```ref()``` 就是 ```state``` 属性
+  * ```computed()``` 就是 ```getters```
+  * ```function()``` 就是 ```actions```
+```js
+import { defineStore } from 'pinia'
+
+export const useCounterStore = defineStore('counter', () => {
+  const count = ref(0)
+  const doubleCount = computed(() => count.value * 2)
+  function increment() {
+    count.value++
+  }
+
+  return { count, doubleCount, increment }
+})
+```
+
+
+
+## 状态持久化```Persist```
+* 安装
+```shell
+npm install pinia-plugin-persist
+```
+* 将```persist```插件添加到```pinia```实例上
+```js
+import { createPinia } from 'pinia'
+import piniaPersist from 'pinia-plugin-persist'
+
+const pinia = createPinia()
+pinia.use(piniaPersist)
+```
+* 基本使用：```defineStore```时， 第三个参数```persist```选项设置为```true```
+```js
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+
+export const useTokenStore = defineStore('token', () => {
+    /* State */
+    const token = ref('')
+
+    /* Setter */
+    const setToken = (newToken) => {
+        token.value = newToken
+    }
+
+    /* Action */
+    const removeToken = () => {
+        token.value = ''
+    }
+
+    return {
+        token, setToken, removeToken
+    }
+}, {
+  persist: true
+}
+);
+```
